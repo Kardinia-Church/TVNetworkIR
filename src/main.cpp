@@ -1,166 +1,121 @@
-/*
- * Basic Network IR Tv Controller 2020
- * Connect IR LED to pin 3
- * 
- * Will send and keep track of the state of the tv by sending the IR power toggle command below
- * For a Hisense TV
- * 
- * Please connect both this unit and the tv on the same power source to ensure they stay in sync!
- * 
- * Commands:
- *  ipAddress/action=<command>
- * 
- *  on = Turns the TV on
- *  off = Turns the TV off
- *  toggle = Toggles the TV power
- *  get = Returns the state of the TV power
- *  forceon = Forces the TV on
- *  forceoff = Forces the TV off
- *  changestateoff = Sets the internal flag to the TV is off
- *  changestateon = Sets the internal flag to the TV is on
- */
+/**
+
+TV Network IR By Kardinia Church 2020
+A ESP8266 project for controlling a TV using an IR signal
+
+http://github.com/kardinia-church/TVNetworkIR
+
+
+main.cpp
+Main functionality
+*/
 
 #include <Arduino.h>
-#include <UIPEthernet.h>
-#include <IRremote.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiUdp.h>
+#include <ESP8266WebServer.h>
+#include "settings.h"
+#include "commands.h"
 
-#define POWER_TOGGLE_IR 0xFDB04F
-#define DELAY_BETWEEN_COMMANDS_SEC 30
+#define VERSION "1.0"
+#define PACKET_SIZE 16
 
-byte mac[] = { 0x90, 0xA2, 0xFA, 0x0D, 0x78, 0xEE  };                                  
-IPAddress ip(10, 1, 10, 50);                  
-EthernetServer server(80);
-bool state = false;
+WiFiUDP udp;
+String udpPassword = DEFAULT_UDP_PASSWORD;
+int id = DEFAULT_ID;
+
+//Open an AP to allow for configuration using the web ui
+void openAP() {
+  Serial.print("Opening AP on SSID: " + String(CONFIG_SSID) + "... ");
+  WiFi.disconnect();
+  WiFi.mode(WIFI_OFF);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(IPAddress(192, 168, 1, 1), IPAddress(192, 168, 1, 1), IPAddress(255, 255, 255, 0));
+  WiFi.softAP(CONFIG_SSID);
+  //dnsServer.start(53, "*", IPAddress(192, 168, 1, 1));
+  Serial.println(" Ready");
+}
 
 void setup() { 
-  Serial.begin(115200);
-  Ethernet.begin(mac, ip);
-  server.begin();
-  
-  Serial.print("IP Address: ");
-  Serial.println(Ethernet.localIP());
-
-  Serial.print("MAC Address: ");
-  for(int i = 0; i < 6; i++){Serial.print(mac[i], HEX); Serial.print(" ");}
+  Serial.begin(SERIAL_BAUD);
+  pinMode(DEBUG_LED, OUTPUT);
+  digitalWrite(DEBUG_LED, DEBUG_LED_ON_STATE);
+  Serial.println("TV Network IR By Kardinia Church");
+  Serial.println("Version :" + String(VERSION));
+  Serial.println("Build Date: " + String(__DATE__));
   Serial.println("");
-}
+  setupCommands();
 
-unsigned long lastCmdSent = -(DELAY_BETWEEN_COMMANDS_SEC * 1000);
-bool sendIRPower(bool power, bool force=false) {
-  if(state != power || force) {
-      if(lastCmdSent + (DELAY_BETWEEN_COMMANDS_SEC * 1000) > millis()) {
-        return false;
-      }
-      
-      Serial.print("Sent IR.");
-      lastCmdSent = millis();
-      IRsend irsend;
-      state = power;
-      for (int i = 0; i < 3; i++) {
-        irsend.sendNEC(POWER_TOGGLE_IR, 32);
-        delay(40);
-      }
-      Serial.println(state);
-      return true;
-  }
-  return true;
-}
-
-void loop() {
-  //IRsend irsend;
-  EthernetClient client = server.available();
-  if(client) {
-    String incoming = "";
-    while(client.connected()) {
-      if(client.available()) {
-        char c = client.read();
-        if(c == '\n') {
-          //We only care about processing the first line in the HTTP request
-          if(incoming.indexOf("GET") == 0) {
-            String url = incoming.substring(incoming.indexOf("/") + 1, incoming.indexOf("HTTP") - 1);
-
-            //Perform an action
-            if(url.indexOf("action=") != -1) {
-              
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: text/html");
-            client.println("Connection: close");
-            client.println();
-            client.println("<!DOCTYPE HTML>");
-            client.println("<html>");
-
-              
-              String action = url.substring(url.indexOf("=") + 1, url.length());
-
-              if(action == "on") {
-                if(sendIRPower(true)) {
-                  client.println("OK");
-                }
-                else {
-                  client.println("FAIL");
-                  client.println("TOOMANYCOMMANDS");
-                }
-              }
-              else if(action == "off") {
-                if(sendIRPower(false)) {
-                  client.println("OK");
-                }
-                else {
-                  client.println("FAIL");
-                  client.println("TOOMANYCOMMANDS");
-                }
-              }
-              else if(action == "toggle") {
-                if(sendIRPower(!state)) {
-                  client.println("OK");
-                }
-                else {
-                  client.println("FAIL");
-                  client.println("TOOMANYCOMMANDS");
-                }
-              }
-              else if(action == "get") {
-                client.println(state ? "ON":"OFF");
-              }
-              else if(action == "forceon") {
-                if(sendIRPower(true, true)) {
-                  client.println("OK");
-                }
-                else {
-                  client.println("FAIL");
-                  client.println("TOOMANYCOMMANDS");
-                }
-              }
-              else if(action == "forceoff") {
-                if(sendIRPower(false, true)) {
-                  client.println("OK");
-                }
-                else {
-                  client.println("FAIL");
-                  client.println("TOOMANYCOMMANDS");
-                }
-              }
-              else if(action == "changestateoff") {
-                client.println("OK");
-                state = false;
-              }
-              else if(action == "changestateon") {
-                client.println("OK");
-                state = true;
-              }
-              else {
-                client.println("ERROR");
-              }
-              client.println("</html>");
-            }
-            client.stop();
-          }
-          break;
-        }
-        else {
-          incoming += c;
-        }
-      }
+  //Attempt to connect to wifi
+  Serial.print("Connecting to WiFi...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+    if(attempts > 30) {
+      Serial.println(" Failed");
+      openAP();
+      break;
     }
   }
+
+  if(WiFi.isConnected()) {
+    Serial.print(" Connected IP: ");
+    Serial.print(WiFi.localIP());
+
+    //If we're connected to wifi open the UDP listener
+    udp.begin(LISTEN_PORT);
+    Serial.print(", Listening on port ");
+    Serial.println(udp.localPort());
+  }
+    pinMode(DEBUG_LED, OUTPUT);
+    digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE);
+}
+
+//Processing the incoming UDP packets
+char packetBuffer[PACKET_SIZE];
+bool processIncoming() {
+  int incoming = udp.parsePacket();
+  IPAddress remoteIP =  udp.remoteIP();
+  //Got packet?
+  if (incoming) {
+    memset(packetBuffer, 0, sizeof(packetBuffer));
+    udp.read(packetBuffer, PACKET_SIZE);
+
+    //Check IRTV flag
+    if(packetBuffer[0] != 0x49){return false;}
+    if(packetBuffer[1] != 0x52){return false;}
+    if(packetBuffer[2] != 0x54){return false;}
+    if(packetBuffer[3] != 0x56){return false;}
+
+    //Check password
+    for(int i = 0; i < udpPassword.length(); i++) {
+      if(packetBuffer[i + 4] != udpPassword[i]){return false;}
+    }
+
+    //Check the TV id
+    if(packetBuffer[12] != id){return false;}
+    
+    //Get the action
+    String command = "";
+    for(int i = 0; i < 3; i++) {command += (char)packetBuffer[i + 13];}
+
+    Serial.println("Request incoming: " + command);
+
+    //Process the command and send a reply
+    udp.beginPacket(remoteIP, ANSWER_PORT);
+    udp.print(processCommand(command));
+    udp.endPacket();
+
+    return true;
+  }
+}
+
+
+void loop() {
+  processIncoming();
 }
