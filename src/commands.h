@@ -67,7 +67,7 @@ String processCommand(String command) {
         return setPower(true) ? "IRTVOK" : "IRTVFAIL";
     }
     //Power off
-    else if(command == "POFF") {
+    else if(command == "POF") {
         return setPower(false) ? "IRTVOK" : "IRTVFAIL";
     }
     //Current power
