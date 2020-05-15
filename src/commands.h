@@ -18,9 +18,12 @@ Used to define the commands that are supported
 #include <IRsend.h>
 #include "settings.h"
 
+IRsend irsend(IR_PIN);
+
 //Setup pins required
 void setupCommands() {
     pinMode(POWER_STATE_PIN, INPUT);
+    irsend.begin();
 }
 
 //Flash the debug led to show it did something
@@ -51,7 +54,6 @@ bool setPower(bool state) {
     #endif
 
     //Send the IR
-    IRsend irsend(IR_PIN);
     for (int i = 0; i < 3; i++) {
         irsend.sendNEC(POWER_TOGGLE_IR, 32);
         delay(40);
@@ -64,18 +66,18 @@ bool setPower(bool state) {
 String processCommand(String command) {
     //Power on
     if(command == "PON"){
-        return setPower(true) ? "IRTVOK" : "IRTVFAIL";
+        return setPower(true) ? "OK" : "FAIL";
     }
     //Power off
     else if(command == "POF") {
-        return setPower(false) ? "IRTVOK" : "IRTVFAIL";
+        return setPower(false) ? "OK" : "FAIL";
     }
     //Current power
     else if(command == "CPW") {
         #ifdef INVERT_STATE
-            return "IRTV" + String(!digitalRead(POWER_STATE_PIN));
+            return !digitalRead(POWER_STATE_PIN) ? "ON":"OFF";
         #else
-            return "IRTV" + String(digitalRead(POWER_STATE_PIN));
+            return digitalRead(POWER_STATE_PIN) ? "ON":"OFF";
         #endif
     }
 

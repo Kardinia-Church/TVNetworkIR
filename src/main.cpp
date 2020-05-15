@@ -94,7 +94,13 @@ bool processIncoming() {
 
     //Check password
     for(int i = 0; i < udpPassword.length(); i++) {
-      if(packetBuffer[i + 4] != udpPassword[i]){return false;}
+      if(packetBuffer[i + 4] != udpPassword[i]) {
+        //Password incorrect
+        udp.beginPacket(remoteIP, ANSWER_PORT);
+        udp.print("IRTV" + String(id) + "AUTHERR");
+        udp.endPacket();
+        return false;
+      }
     }
 
     //Check the TV id
@@ -108,7 +114,7 @@ bool processIncoming() {
 
     //Process the command and send a reply
     udp.beginPacket(remoteIP, ANSWER_PORT);
-    udp.print(processCommand(command));
+    udp.print("IRTV" + String(id) + processCommand(command));
     udp.endPacket();
 
     return true;

@@ -17,8 +17,9 @@ Note the password is not encrypted!
 
 Each command will reply to the host at the configured answer port (default 2391) with:
 ```
-IRTVOK if successful
-IRTVFAIL if not successful
+IRTV<id>OK if successful
+IRTV<id>FAIL if not successful
+IRTV<id>AUTHERR if the password is incorrect
 ```
 or if the command had a speicifc reply it'll reply with that
 
@@ -30,7 +31,7 @@ POF will turn off the tv
 ```
 - Get power status
 ```
-CPW will return the current power state of the tv as IRTV<state> (1 = on 0 = off)
+CPW will return the current power state of the tv as IRTV<id><state> (ON or OFF)
 ```
 
 # Custom commands
