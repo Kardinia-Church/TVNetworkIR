@@ -25,7 +25,8 @@ Used to define the global settings for the project
 #define DEBUG_LED LED_BUILTIN           //Debug led pin
 #define DEBUG_LED_ON_STATE LOW          //Debug led on state
 #define POWER_STATE_PIN 5               //Power state input pin (D1)
-//#define INVERT_STATE                  //Uncomment if you require the power status input to be inverted
+#define INVERT_STATE                    //Uncomment if you require the power status input to be inverted
+#define STATE_MODE INPUT_PULLUP         //Change depending if you require a internal pullup or not
 #define IR_PIN 4                        //IR output pin (D2)
 
 //IR commands

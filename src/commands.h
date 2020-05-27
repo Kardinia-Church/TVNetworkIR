@@ -22,7 +22,7 @@ IRsend irsend(IR_PIN);
 
 //Setup pins required
 void setupCommands() {
-    pinMode(POWER_STATE_PIN, INPUT);
+    pinMode(POWER_STATE_PIN, STATE_MODE);
     irsend.begin();
 }
 
