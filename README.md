@@ -34,5 +34,10 @@ POF will turn off the tv
 CPW will return the current power state of the tv as IRTV<id><state> (ON or OFF)
 ```
 
+# Supported TV types
+In the settings.h file a TV type can be specified for the default on/off command by setting the ```TV_TYPE``` to any of the supoorted TVs below
+* TV_TYPE_HISENSE
+* TV_TYPE_PANASONIC
+
 # Custom commands
 If you want to add custom commands this can be done in the commands.h file.

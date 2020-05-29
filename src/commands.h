@@ -55,7 +55,7 @@ bool setPower(bool state) {
 
     //Send the IR
     for (int i = 0; i < 3; i++) {
-        irsend.sendNEC(POWER_TOGGLE_IR, 32);
+        SEND_IR;
         delay(40);
     }
     lastPowerCommandSent = millis();
