@@ -14,11 +14,17 @@ Used to define the commands that are supported
 #define COMMANDS_H
 
 #include <Arduino.h>
-#include <IRremoteESP8266.h>
-#include <IRsend.h>
 #include "settings.h"
 
-IRsend irsend(IR_PIN);
+#ifdef BOARD_ESP266
+    #include <IRremoteESP8266.h>
+    #include <IRsend.h>
+    IRsend irsend(4);
+#else
+    #include <IRremote.h>
+    IRsend irsend;
+#endif
+
 
 //Setup pins required
 void setupCommands() {
@@ -28,7 +34,10 @@ void setupCommands() {
     #else
         pinMode(POWER_STATE_PIN, STATE_MODE);
     #endif
-    irsend.begin();
+
+    #ifdef BOARD_ESP266
+        irsend.begin();
+    #endif
 }
 
 //Turn the TV on or off
@@ -42,11 +51,13 @@ bool setPower(bool state) {
     #else
         if(digitalRead(POWER_STATE_PIN) == state){Serial.println(" tv is already in that state"); return true;}
     #endif
-
     
     #ifdef DISABLE_POWER_DETECT
-        //If power dection is disabled set the pin to the desired state
-        digitalWrite(POWER_STATE_PIN, state);
+        #ifdef INVERT_STATE
+            digitalWrite(POWER_STATE_PIN, !state);
+        #else
+            digitalWrite(POWER_STATE_PIN, state);
+        #endif
     #endif
 
     //Timeout
@@ -107,6 +118,16 @@ String processCommand(String command) {
     }
     //Current power
     else if(command == "CPW") {
+        #ifdef INVERT_STATE
+            return !digitalRead(POWER_STATE_PIN) ? "PON":"POF";
+        #else
+            return digitalRead(POWER_STATE_PIN) ? "PON":"POF";
+        #endif
+    }
+    //Force switch the stored state
+    else if(command == "PSW") {
+        digitalWrite(POWER_STATE_PIN, !digitalRead(POWER_STATE_PIN));
+
         #ifdef INVERT_STATE
             return !digitalRead(POWER_STATE_PIN) ? "PON":"POF";
         #else

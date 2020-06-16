@@ -27,6 +27,7 @@ or if the command had a speicifc reply it'll reply with that
 ```
 PON will turn on the tv
 POF will turn off the tv
+PSW will force the stored state to the inverted state (if not in sync)
 ```
 - Get power status
 ```

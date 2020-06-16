@@ -11,33 +11,32 @@ Main functionality
 */
 
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiUdp.h>
-#include <ESP8266WebServer.h>
+
+#ifdef BOARD_ESP266
+  #include <ESP8266WiFi.h>
+  #include <WiFiUdp.h>
+#else
+  #include <UIPEthernet.h>
+#endif
+
 #include "settings.h"
 #include "commands.h"
 
-#define VERSION "1.3"
+#define VERSION "2.0"
 #define PACKET_SIZE 16
 
-WiFiUDP udp;
+#ifdef BOARD_ESP266
+  WiFiUDP udp;
+#else
+  byte mac[] = {0x1C, 0x39, 0x47, 0x00, 0x0A, 0x8F};
+  EthernetUDP udp;
+  void(* resetFunc) (void) = 0;
+#endif
+
 String udpPassword = DEFAULT_UDP_PASSWORD;
 bool foundServer = false;
 IPAddress serverIP(192, 168, 0, 5);
 int id = DEFAULT_ID;
-
-//Open an AP to allow for configuration using the web ui
-void openAP() {
-  Serial.print("Opening AP on SSID: " + String(CONFIG_SSID) + "... ");
-  WiFi.disconnect();
-  WiFi.mode(WIFI_OFF);
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(IPAddress(192, 168, 1, 1), IPAddress(192, 168, 1, 1), IPAddress(255, 255, 255, 0));
-  WiFi.softAP(CONFIG_SSID);
-  //dnsServer.start(53, "*", IPAddress(192, 168, 1, 1));
-  Serial.println(" Ready");
-}
 
 void setup() { 
   Serial.begin(SERIAL_BAUD);
@@ -49,31 +48,50 @@ void setup() {
   Serial.println("");
   setupCommands();
 
-  //Attempt to connect to wifi
-  Serial.print("Connecting to WiFi...");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-    if(attempts > 30) {
-      Serial.println(" Failed");
-      openAP();
-      break;
+
+  //Attempt to connect
+  #ifdef BOARD_ESP266
+    Serial.print("Connecting to WiFi...");
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+      attempts++;
+      if(attempts > 30) {
+        Serial.println(" Failed");
+        ESP.restart();
+        break;
+      }
     }
-  }
 
-  if(WiFi.isConnected()) {
-    Serial.print(" Connected IP: ");
-    Serial.print(WiFi.localIP());
+    if(WiFi.isConnected()) {
+      Serial.print(" Connected IP: ");
+      Serial.print(WiFi.localIP());
 
-    //If we're connected to wifi open the UDP listener
-    udp.begin(LISTEN_PORT);
-    Serial.print(", Listening on port ");
-    Serial.println(udp.localPort());
-  }
+      //If we're connected to wifi open the UDP listener
+      udp.begin(LISTEN_PORT);
+      Serial.print(", Listening on port ");
+      Serial.println(udp.localPort());
+    }
+  #else
+    Serial.print("Connecting to Ethernet..");
+    if(Ethernet.begin(mac) == 0) {
+      Serial.println(" Failed to connect. Rebooting");
+      delay(1000);
+      resetFunc();
+    }
+    else {
+      Serial.print(" Connected IP: ");
+      Serial.print(Ethernet.localIP());
+      udp.begin(LISTEN_PORT);
+      Serial.print(", Listening on port ");
+      Serial.println(LISTEN_PORT);
+    }
+  #endif
+
+    Serial.print("This device ID: "); Serial.println(id);
     pinMode(DEBUG_LED, OUTPUT);
     digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE);
 }
@@ -82,11 +100,11 @@ void setup() {
 char packetBuffer[PACKET_SIZE];
 bool processIncoming() {
   int incoming = udp.parsePacket();
-  IPAddress remoteIP = udp.remoteIP();
   //Got packet?
   if (incoming) {
     memset(packetBuffer, 0, sizeof(packetBuffer));
     udp.read(packetBuffer, PACKET_SIZE);
+    IPAddress remoteIP = udp.remoteIP();
 
     //Check IRTV flag
     if(packetBuffer[0] != 0x49){return false;}
@@ -118,7 +136,7 @@ bool processIncoming() {
     Serial.println("Request incoming: " + command);
 
     //Process the command and send a reply
-    udp.beginPacket(remoteIP, ANSWER_PORT);
+    udp.beginPacket(udp.remoteIP(), udp.remotePort());
     udp.print("IRTV" + String(id) + processCommand(command));
     udp.endPacket();
 
@@ -140,7 +158,13 @@ void loop() {
   }
 
   //If disconnected from wifi reboot
-  if(WiFi.status() != WL_CONNECTED) {
-    ESP.restart();
-  }
+  #ifdef BOARD_ESP266
+    if(WiFi.status() != WL_CONNECTED) {
+      ESP.restart();
+    }
+  #else
+    if(Ethernet.linkStatus() != LinkON) {
+      resetFunc();
+    }
+  #endif
 }

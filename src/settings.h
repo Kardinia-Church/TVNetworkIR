@@ -5,18 +5,18 @@ A ESP8266 project for controlling a TV using an IR signal
 
 http://github.com/kardinia-church/TVNetworkIR
 
+IRPin for ESP8266 is pin D2 and for the Arduino Nano it is pin D3
 
 Settings.h
 Used to define the global settings for the project
 */
 
 #define SERIAL_BAUD 115200
-#define CONFIG_SSID "ESP8266"
 
 #define WIFI_SSID ""                                    //Default WiFi ssid
 #define WIFI_PASS ""                                    //Default WiFi password
 
-#define TV_TYPE TV_TYPE_PANASONIC
+#define TV_TYPE TV_TYPE_HISENSE
 #define DEFAULT_UDP_PASSWORD ""                         //The default password for the UDP packet listener
 #define DEFAULT_ID 1                                    //The tv id
 #define LISTEN_PORT 2390                                //Port to listen on (this is listening to broadcast messages)
@@ -28,8 +28,7 @@ Used to define the global settings for the project
 #define POWER_STATE_PIN 5                               //Power state input pin (D1)
 #define INVERT_STATE                                    //Uncomment if you require the power status input to be inverted
 #define STATE_MODE INPUT_PULLUP                         //Change depending if you require a internal pullup or not
-#define IR_PIN 4                                        //IR output pin (D2)
-//#define DISABLE_POWER_DETECT                          //Uncomment to disable the power dection. Assumes the TV is OFF when power is applied
+#define DISABLE_POWER_DETECT                            //Uncomment to disable the power dection. Assumes the TV is OFF when power is applied
 
 //TV Types
 #define TV_TYPE_HISENSE 1
