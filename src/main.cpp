@@ -18,11 +18,13 @@ Main functionality
 #include "settings.h"
 #include "commands.h"
 
-#define VERSION "1.0"
+#define VERSION "1.3"
 #define PACKET_SIZE 16
 
 WiFiUDP udp;
 String udpPassword = DEFAULT_UDP_PASSWORD;
+bool foundServer = false;
+IPAddress serverIP(192, 168, 0, 5);
 int id = DEFAULT_ID;
 
 //Open an AP to allow for configuration using the web ui
@@ -42,7 +44,7 @@ void setup() {
   pinMode(DEBUG_LED, OUTPUT);
   digitalWrite(DEBUG_LED, DEBUG_LED_ON_STATE);
   Serial.println("TV Network IR By Kardinia Church");
-  Serial.println("Version :" + String(VERSION));
+  Serial.println("Version: " + String(VERSION));
   Serial.println("Build Date: " + String(__DATE__));
   Serial.println("");
   setupCommands();
@@ -80,7 +82,7 @@ void setup() {
 char packetBuffer[PACKET_SIZE];
 bool processIncoming() {
   int incoming = udp.parsePacket();
-  IPAddress remoteIP =  udp.remoteIP();
+  IPAddress remoteIP = udp.remoteIP();
   //Got packet?
   if (incoming) {
     memset(packetBuffer, 0, sizeof(packetBuffer));
@@ -91,6 +93,9 @@ bool processIncoming() {
     if(packetBuffer[1] != 0x52){return false;}
     if(packetBuffer[2] != 0x54){return false;}
     if(packetBuffer[3] != 0x56){return false;}
+
+    serverIP = udp.remoteIP();
+    foundServer = true;
 
     //Check password
     for(int i = 0; i < udpPassword.length(); i++) {
@@ -124,4 +129,18 @@ bool processIncoming() {
 
 void loop() {
   processIncoming();
+  
+  String status = processStatus();
+  if(status != "" && foundServer == true) {
+    //Send update
+    Serial.println("State changed externally sending: " + status);
+    udp.beginPacket(serverIP, ANSWER_PORT);
+    udp.print("IRTV" + String(id) + status);
+    udp.endPacket();
+  }
+
+  //If disconnected from wifi reboot
+  if(WiFi.status() != WL_CONNECTED) {
+    ESP.restart();
+  }
 }
