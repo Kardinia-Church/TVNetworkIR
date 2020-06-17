@@ -100,7 +100,7 @@ String processStatus() {
         #ifdef INVERT_STATE
             if(!digitalRead(POWER_STATE_PIN)){return "PON";} else{return "POF";}
         #else
-            if(digitalRead(POWER_STATE_PIN) == state){return "PON";} else{return "POF";}
+            if(digitalRead(POWER_STATE_PIN)){return "PON";} else{return "POF";}
         #endif
     }
     

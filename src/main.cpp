@@ -22,7 +22,7 @@ Main functionality
 #include "settings.h"
 #include "commands.h"
 
-#define VERSION "2.0"
+#define VERSION "2.1"
 #define PACKET_SIZE 16
 
 #ifdef BOARD_ESP266
@@ -111,6 +111,7 @@ bool processIncoming() {
     if(packetBuffer[1] != 0x52){return false;}
     if(packetBuffer[2] != 0x54){return false;}
     if(packetBuffer[3] != 0x56){return false;}
+    if(packetBuffer[12] != id){return false;}
 
     serverIP = udp.remoteIP();
     foundServer = true;
@@ -125,9 +126,6 @@ bool processIncoming() {
         return false;
       }
     }
-
-    //Check the TV id
-    if(packetBuffer[12] != id){return false;}
     
     //Get the action
     String command = "";

@@ -16,7 +16,7 @@ Used to define the global settings for the project
 #define WIFI_SSID ""                                    //Default WiFi ssid
 #define WIFI_PASS ""                                    //Default WiFi password
 
-#define TV_TYPE TV_TYPE_HISENSE
+#define TV_TYPE TV_TYPE_SONIQ
 #define DEFAULT_UDP_PASSWORD ""                         //The default password for the UDP packet listener
 #define DEFAULT_ID 1                                    //The tv id
 #define LISTEN_PORT 2390                                //Port to listen on (this is listening to broadcast messages)
@@ -28,11 +28,12 @@ Used to define the global settings for the project
 #define POWER_STATE_PIN 5                               //Power state input pin (D1)
 #define INVERT_STATE                                    //Uncomment if you require the power status input to be inverted
 #define STATE_MODE INPUT_PULLUP                         //Change depending if you require a internal pullup or not
-#define DISABLE_POWER_DETECT                            //Uncomment to disable the power dection. Assumes the TV is OFF when power is applied
+//#define DISABLE_POWER_DETECT                            //Uncomment to disable the power dection. Assumes the TV is OFF when power is applied
 
 //TV Types
 #define TV_TYPE_HISENSE 1
 #define TV_TYPE_PANASONIC 2
+#define TV_TYPE_SONIQ 3
 
 //IR commands
 #if TV_TYPE == TV_TYPE_HISENSE
@@ -43,6 +44,10 @@ Used to define the global settings for the project
     #define POWER_TIMEOUT_SEC 30
     #define SEND_IR irsend.sendPanasonic(0x4004, 0x100BCBD)
     #define LOOP_TIMES 20
+#elif TV_TYPE == TV_TYPE_SONIQ
+    #define POWER_TIMEOUT_SEC 15
+    #define SEND_IR irsend.sendNEC(0x4EBB708F, 32)
+    #define LOOP_TIMES 3
 #else
     #error Invalid TV Type Specified
 #endif
