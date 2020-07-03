@@ -68,23 +68,27 @@ bool setPower(bool state) {
         digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE);
     }
 
-    //Send the IR
-    for (int i = 0; i < LOOP_TIMES; i++) {
-        SEND_IR;
-        delay(40);
-    }
+    #ifndef OVERRIDE_IRSENDER
+        //Send the IR
+        for (int i = 0; i < LOOP_TIMES; i++) {
+            SEND_IR;
+            delay(40);
+        }
+    #else
+        OVERRIDE_IRSENDER
+    #endif
     lastPowerCommandSent = millis();
     Serial.print(" sent... ");
     
     #ifdef INVERT_STATE
         int wait = 0;
-        while(!digitalRead(POWER_STATE_PIN) != state){wait++; delay(1000); if(wait > POWER_TIMEOUT_SEC){Serial.println("Failed."); return false;}}
+        while(!digitalRead(POWER_STATE_PIN) != state){wait++; delay(1000); if(wait > POWER_TIMEOUT_SEC){Serial.println("Failed."); digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE); return false;}}
         Serial.println("Success!");
         digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE);
         return true;
     #else
         int wait = 0;
-        while(digitalRead(POWER_STATE_PIN) != state){wait++; delay(1000); if(wait > POWER_TIMEOUT_SEC){Serial.println("Failed."); return false;}}
+        while(digitalRead(POWER_STATE_PIN) != state){wait++; delay(1000); if(wait > POWER_TIMEOUT_SEC){Serial.println("Failed."); digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE); return false;}}
         Serial.println("Success!");
         digitalWrite(DEBUG_LED, !DEBUG_LED_ON_STATE);
         return true;
@@ -93,6 +97,7 @@ bool setPower(bool state) {
 
 //Continuously loop to check state
 bool previousPowerState = false;
+
 String processStatus() {
     if(digitalRead(POWER_STATE_PIN) != previousPowerState) {
         previousPowerState = digitalRead(POWER_STATE_PIN);
