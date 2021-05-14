@@ -22,7 +22,7 @@ Main functionality
 #include "settings.h"
 #include "commands.h"
 
-#define VERSION "2.1"
+#define VERSION "3.0"
 #define PACKET_SIZE 16
 
 #ifdef BOARD_ESP266
@@ -34,8 +34,7 @@ Main functionality
 #endif
 
 String udpPassword = DEFAULT_UDP_PASSWORD;
-bool foundServer = false;
-IPAddress serverIP(192, 168, 0, 5);
+IPAddress serverIP(0, 0, 0, 255);
 int id = DEFAULT_ID;
 
 void setup() { 
@@ -69,6 +68,11 @@ void setup() {
     if(WiFi.isConnected()) {
       Serial.print(" Connected IP: ");
       Serial.print(WiFi.localIP());
+      serverIP[0] = WiFi.localIP()[0];
+      serverIP[1] = WiFi.localIP()[1];
+      serverIP[2] = WiFi.localIP()[2];
+      Serial.print(", Broadcast IP: ");
+      Serial.print(serverIP);
 
       //If we're connected to wifi open the UDP listener
       udp.begin(LISTEN_PORT);
@@ -85,6 +89,11 @@ void setup() {
     else {
       Serial.print(" Connected IP: ");
       Serial.print(Ethernet.localIP());
+      serverIP[0] = Ethernet.localIP()[0];
+      serverIP[1] = Ethernet.localIP()[1];
+      serverIP[2] = Ethernet.localIP()[2];
+      Serial.print(", Broadcast IP: ");
+      Serial.print(serverIP);
       udp.begin(LISTEN_PORT);
       Serial.print(", Listening on port ");
       Serial.println(LISTEN_PORT);
@@ -97,6 +106,7 @@ void setup() {
 }
 
 //Processing the incoming UDP packets
+bool sentPing = false;
 char packetBuffer[PACKET_SIZE];
 bool processIncoming() {
   int incoming = udp.parsePacket();
@@ -104,7 +114,7 @@ bool processIncoming() {
   if (incoming) {
     memset(packetBuffer, 0, sizeof(packetBuffer));
     udp.read(packetBuffer, PACKET_SIZE);
-    IPAddress remoteIP = udp.remoteIP();
+    //IPAddress remoteIP = udp.remoteIP();
 
     //Check IRTV flag
     if(packetBuffer[0] != 0x49){return false;}
@@ -113,28 +123,27 @@ bool processIncoming() {
     if(packetBuffer[3] != 0x56){return false;}
     if(packetBuffer[12] != id){return false;}
 
-    serverIP = udp.remoteIP();
-    foundServer = true;
-
     //Check password
     for(int i = 0; i < udpPassword.length(); i++) {
       if(packetBuffer[i + 4] != udpPassword[i]) {
         //Password incorrect
-        udp.beginPacket(remoteIP, ANSWER_PORT);
+        udp.beginPacket(serverIP, ANSWER_PORT);
         udp.print("IRTV" + String(id) + "AUTHERR");
         udp.endPacket();
         return false;
       }
     }
+
+    sentPing = false;
     
     //Get the action
     String command = "";
     for(int i = 0; i < 3; i++) {command += (char)packetBuffer[i + 13];}
-
-    Serial.println("Request incoming: " + command);
+      Serial.println("Request incoming: " + command);
+    if(command == "OKK"){return true;}
 
     //Process the command and send a reply
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
+    udp.beginPacket(serverIP, udp.remotePort());
     udp.print("IRTV" + String(id) + processCommand(command));
     udp.endPacket();
 
@@ -142,17 +151,37 @@ bool processIncoming() {
   }
 }
 
-
+unsigned long pingTime = millis();
 void loop() {
   processIncoming();
-  
+
   String status = processStatus();
-  if(status != "" && foundServer == true) {
+  if(status != "") {
     //Send update
     Serial.println("State changed externally sending: " + status);
     udp.beginPacket(serverIP, ANSWER_PORT);
     udp.print("IRTV" + String(id) + status);
     udp.endPacket();
+  }
+
+  //Ping the server if it exists now and again if no server reboot
+  if(pingTime + PING_TIMEOUT < millis()) {
+    Serial.println("Ping check");
+    if(!sentPing) {
+      pingTime = millis();
+      sentPing = true;
+      udp.beginPacket(serverIP, ANSWER_PORT);
+      udp.print("IRTV" + String(id) + processCommand("CPW"));
+      udp.endPacket();
+    }
+    else {
+      Serial.println("Failed ping or have never communicated with the server, rebooting");
+      #ifdef BOARD_ESP266
+        ESP.restart();
+      #else
+        resetFunc();
+      #endif
+    }
   }
 
   //If disconnected from wifi reboot

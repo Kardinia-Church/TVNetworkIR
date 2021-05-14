@@ -28,6 +28,7 @@ or if the command had a speicifc reply it'll reply with that
 PON will turn on the tv
 POF will turn off the tv
 PSW will force the stored state to the inverted state (if not in sync)
+PNG will be sent by the device so often to check the network status. It expects a response of "PNG". If there is no response the device will reboot
 ```
 - Get power status
 ```
@@ -43,3 +44,8 @@ In the settings.h file a TV type can be specified for the default on/off command
 
 # Custom commands
 If you want to add custom commands this can be done in the commands.h file.
+
+# Example Node Red Flow
+The following is an example of a node red flow to use this project
+```
+```

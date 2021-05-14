@@ -16,11 +16,12 @@ Used to define the global settings for the project
 #define WIFI_SSID ""                                    //Default WiFi ssid
 #define WIFI_PASS ""                                    //Default WiFi password
 
-#define TV_TYPE TV_TYPE_PANASONIC
+#define TV_TYPE TV_TYPE_HISENSE
 #define DEFAULT_UDP_PASSWORD ""                         //The default password for the UDP packet listener
-#define DEFAULT_ID 4                                    //The tv id
+#define DEFAULT_ID 2                                    //The tv id
 #define LISTEN_PORT 2390                                //Port to listen on (this is listening to broadcast messages)
 #define ANSWER_PORT 2391                                //Port to send on (this will reply on this port to the ip address that a message was sent from)
+#define PING_TIMEOUT 10000                              //The time between ping periods
 
 //Pins
 #define DEBUG_LED LED_BUILTIN                           //Debug led pin
