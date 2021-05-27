@@ -30,7 +30,7 @@ Used to define the commands that are supported
 void setupCommands() {
     #ifdef DISABLE_POWER_DETECT
         pinMode(POWER_STATE_PIN, OUTPUT);
-        digitalWrite(POWER_STATE_PIN, LOW);
+        //digitalWrite(POWER_STATE_PIN, LOW);
     #else
         pinMode(POWER_STATE_PIN, STATE_MODE);
     #endif
@@ -55,8 +55,10 @@ bool setPower(bool state) {
     #ifdef DISABLE_POWER_DETECT
         #ifdef INVERT_STATE
             digitalWrite(POWER_STATE_PIN, !state);
+            storePersistState(!state);
         #else
             digitalWrite(POWER_STATE_PIN, state);
+            storePersistState(state);
         #endif
     #endif
 
@@ -131,6 +133,7 @@ String processCommand(String command) {
     }
     //Force switch the stored state
     else if(command == "PSW") {
+        storePersistState(!digitalRead(POWER_STATE_PIN));
         digitalWrite(POWER_STATE_PIN, !digitalRead(POWER_STATE_PIN));
 
         #ifdef INVERT_STATE

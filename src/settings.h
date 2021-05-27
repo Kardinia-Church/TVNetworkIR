@@ -18,7 +18,7 @@ Used to define the global settings for the project
 
 #define TV_TYPE TV_TYPE_HISENSE
 #define DEFAULT_UDP_PASSWORD ""                         //The default password for the UDP packet listener
-#define DEFAULT_ID 2                                    //The tv id
+#define DEFAULT_ID 1                                    //The tv id
 #define LISTEN_PORT 2390                                //Port to listen on (this is listening to broadcast messages)
 #define ANSWER_PORT 2391                                //Port to send on (this will reply on this port to the ip address that a message was sent from)
 #define PING_TIMEOUT 10000                              //The time between ping periods
@@ -27,7 +27,7 @@ Used to define the global settings for the project
 #define DEBUG_LED LED_BUILTIN                           //Debug led pin
 #define DEBUG_LED_ON_STATE LOW                          //Debug led on state
 #define POWER_STATE_PIN 5                               //Power state input pin (D1)
-#define INVERT_STATE                                    //Uncomment if you require the power status input to be inverted
+//#define INVERT_STATE                                    //Uncomment if you require the power status input to be inverted
 #define STATE_MODE INPUT_PULLUP                         //Change depending if you require a internal pullup or not
 //#define DISABLE_POWER_DETECT                            //Uncomment to disable the power dection. Assumes the TV is OFF when power is applied
 

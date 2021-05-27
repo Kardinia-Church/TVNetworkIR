@@ -11,18 +11,52 @@ Main functionality
 */
 
 #include <Arduino.h>
+#include "settings.h"
 
 #ifdef BOARD_ESP266
   #include <ESP8266WiFi.h>
   #include <WiFiUdp.h>
+  #include "FS.h"
+  #define PERSIST_LOCATION "/config.json"
+  
+  //Load in the persistant information
+  bool loadPersist() {
+    File file = SPIFFS.open(PERSIST_LOCATION, "r");
+    if(!file) {
+      Serial.println("Error opening persistant storage file");
+      return false;
+    }
+    else {
+      String read = "";
+      while(file.available()) {
+        read += char(file.read());
+      }
+      if(read.length() == 1) {
+        digitalWrite(POWER_STATE_PIN, (read == "1"));
+      }
+    }
+  }
+
+  //Store the 
+  bool storePersistState(bool powerState) {
+    File file = SPIFFS.open(PERSIST_LOCATION, "w");
+    if(!file) {
+      Serial.println("Error writing persistant storage file");
+      return false;
+    }
+    else {
+      file.write(powerState ? "1" : "0");
+      file.close();
+      return true;
+    }
+  }
 #else
   #include <UIPEthernet.h>
 #endif
 
-#include "settings.h"
 #include "commands.h"
 
-#define VERSION "3.0"
+#define VERSION "3.1"
 #define PACKET_SIZE 16
 
 #ifdef BOARD_ESP266
@@ -50,6 +84,27 @@ void setup() {
 
   //Attempt to connect
   #ifdef BOARD_ESP266
+    Serial.print("Open SPIFFS..");
+    if(SPIFFS.begin()){
+      Serial.println(" Success!"); 
+
+      if(ESP.getResetReason() != "Software/System restart") {
+        for(int i = 0; i < 10; i++) { //Flash 10 times to indicate we have reset to 0
+          digitalWrite(DEBUG_LED, HIGH);
+          delay(200);
+          digitalWrite(DEBUG_LED, LOW);
+          delay(200);
+        }
+        storePersistState(0);
+      }
+      else {
+        if(!loadPersist()) {
+          storePersistState(0);
+        }
+      }
+    } 
+    else{Serial.println(" Failed"); SPIFFS.format(); ESP.restart();}
+
     Serial.print("Connecting to WiFi...");
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
